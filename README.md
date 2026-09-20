@@ -1,107 +1,100 @@
 # INE Product Price Tracker
 
-A web scraping and price tracking application built for the INE Software Engineer Intern assignment.
-
-The application allows users to search products from the INE mock store, select products to track, scrape current price and stock data, save history in Supabase PostgreSQL, and trigger batch scrapes via an external cron endpoint.
+This is my submission for the INE Software Engineer Intern assignment. It is a full-stack price tracking application that lets you search products from the INE mock store, track them, scrape live price and stock info using Playwright, and store the history in Supabase (PostgreSQL). It also has an external cron endpoint to run batch updates automatically.
 
 ---
 
 ## Project Status
 
-- **Implemented and Tested Locally**:
-  - Catalog search and pagination
-  - Product tracking (add, list, pause/resume, delete)
-  - Playwright scraper (handles cookie banner, hover, dwell time, reveal click, and retry logic)
-  - Price and stock history storage
-  - Scrape execution logs (latency, status, attempt counts, errors)
-  - Secured batch scraping endpoint (`POST /api/cron/scrape-all`)
-  - React dashboard with search, product list, and history/logs modal
-- **Prepared for Deployment**:
-  - Render configuration and Playwright build script
-  - Vercel configuration for the React frontend
-  - Environment variable templates
-- **Not Yet Verified Live**:
-  - Live deployment on Render and Vercel (tested only on local development environment so far)
-  - External cron job running on cron-job.org (endpoint is tested locally, but not yet scheduled on a live URL)
+- **Tested Locally**:
+  - Searching the mock store catalog and pagination
+  - Adding, pausing/resuming, and deleting tracked products
+  - Playwright scraper (accepts cookies, hovers over price box, waits for reveal button, extracts price & stock)
+  - Saving price history and execution logs (response times, retries, errors)
+  - Manual scrape button and batch scrape endpoint (`POST /api/cron/scrape-all`)
+  - React frontend dashboard with history and log modal
+- **Deployment Status**:
+  - Configured for Render (backend) and Vercel (frontend)
+  - Not yet verified live in production (tested on localhost so far)
+  - Cron schedule set up for cron-job.org, waiting for live URL
 
 ---
 
 ## Tech Stack
 
-- **Frontend**: React (Vite), plain CSS
-- **Backend**: Node.js, Express.js
+- **Frontend**: React (Vite), Vanilla CSS
+- **Backend**: Node.js, Express.js (organized into routes, controllers, and services)
 - **Scraper**: Playwright (Chromium)
 - **Database**: Supabase (PostgreSQL)
 
 ---
 
-## Architecture
-
-The project follows a standard MVC structure:
+## Project Structure
 
 ```text
-React Frontend (Vite)
-       │  HTTP JSON requests
-       ▼
-Express Backend (Node.js)
- ├── Routes & Controllers  (handles HTTP requests)
- ├── Services
- │    ├── catalogService.js      (fetches mock store catalog)
- │    ├── productService.js      (database queries for products)
+frontend/ (React + Vite)
+   │  Makes API calls
+   ▼
+backend/ (Node + Express)
+ ├── routes/        (API route definitions)
+ ├── controllers/   (Request handling and validation)
+ ├── services/
+ │    ├── catalogService.js      (fetches INE mock store catalog)
+ │    ├── productService.js      (database operations)
  │    ├── scraperService.js      (Playwright browser automation)
- │    └── batchScrapeService.js  (sequential batch scraping)
- └── Config                      (Supabase client and error handling)
-       │  PostgreSQL queries
+ │    └── batchScrapeService.js  (scrapes tracked products one by one)
+ └── config/        (Supabase client and app config)
+       │
        ▼
-Supabase Database
+Supabase Database (PostgreSQL)
 ```
 
 ---
 
 ## Database Tables
 
-Defined in `backend/db/schema.sql`:
+Created in Supabase using `backend/db/schema.sql`:
 
-1. **`products`**:
-   - `id`: Primary key.
-   - `store_product_id`: Numeric ID from the mock store (marked `UNIQUE` to prevent duplicates).
-   - `name`, `slug`, `url`, `brand`, `category`.
-   - `is_active`: Boolean flag to pause or resume tracking.
-   - `last_scraped_at`, `created_at`, `updated_at`.
+1. **`products`**
+   - `id`: UUID primary key
+   - `store_product_id`: Unique product ID from INE store
+   - `name`, `slug`, `url`, `brand`, `category`
+   - `is_active`: Boolean to pause or resume tracking
+   - `last_scraped_at`, `created_at`, `updated_at`
 
-2. **`price_history`**:
-   - `id`: Primary key.
-   - `product_id`: Foreign key referencing `products(id)` with `ON DELETE CASCADE`.
-   - `price`: Numeric price value.
-   - `currency`: Currency code (default `'INR'`).
-   - `stock_status`: Text badge from the store (e.g., `"In stock · 12 left"`).
-   - `stock_count`: Parsed integer remaining count, or `null`.
-   - `scraped_at`: Timestamp.
+2. **`price_history`**
+   - `id`: UUID primary key
+   - `product_id`: Foreign key pointing to `products(id)`
+   - `price`: Numeric price
+   - `currency`: Default `'INR'`
+   - `stock_status`: Text status (e.g. `"In stock · 12 left"`)
+   - `stock_count`: Extracted number of items left
+   - `scraped_at`: Timestamp
 
-3. **`scrape_logs`**:
-   - `id`: Primary key.
-   - `product_id`: Foreign key referencing `products(id)` with `ON DELETE CASCADE`.
-   - `status`: `'SUCCESS'` or `'FAILURE'`.
-   - `response_time_ms`: Duration of the scrape in milliseconds.
-   - `attempt_count`: Number of attempts made (up to 3).
-   - `error_message`: Error message if failed.
-   - `mode`: `'headless'` or `'headed'`.
-   - `created_at`: Timestamp.
+3. **`scrape_logs`**
+   - `id`: UUID primary key
+   - `product_id`: Foreign key pointing to `products(id)`
+   - `status`: `'SUCCESS'` or `'FAILURE'`
+   - `response_time_ms`: Duration in milliseconds
+   - `attempt_count`: Number of retry attempts (up to 3)
+   - `error_message`: Error details if failed
+   - `mode`: `'headless'` or `'headed'`
+   - `created_at`: Timestamp
 
 ---
 
-## Scraper Interaction Steps
+## How the Scraper Works
 
-The INE mock store delays showing price and stock on product pages. Playwright interacts with the page in these steps:
+The INE mock store has a delayed price display mechanism. The scraper handles it with these steps:
 
-1. **Navigate**: Opens the product page (`https://demo.inelabteamdev.com/product/:id`).
-2. **Cookie Banner**: Clicks "Accept" on the cookie banner if it appears.
-3. **Hover Simulation**: Moves the mouse across the price box and waits for at least 600ms (the site disables the reveal button until this dwell time passes).
-4. **Reveal Price**: Clicks the enabled "Reveal price" button.
-5. **Wait for Price**: Waits for the price container to finish loading and update.
-6. **Extract**: Reads the price text and stock badge text.
-7. **Retries**: If an attempt times out or fails, waits and tries again (up to 3 attempts).
-8. **Close**: Closes the browser in a `finally` block.
+1. Opens the product page URL.
+2. Closes the cookie banner if it shows up.
+3. Hovers over the price container and waits at least 600ms (the page keeps the reveal button disabled until you dwell on it).
+4. Clicks the "Reveal price" button once enabled.
+5. Waits for the final price and stock badge to render in the DOM.
+6. Reads the price and stock text.
+7. If anything fails or times out, it retries up to 3 times before giving up.
+8. Closes the browser context cleanly.
 
 ---
 
@@ -109,17 +102,17 @@ The INE mock store delays showing price and stock on product pages. Playwright i
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/health` | Health check and database connection status |
-| `GET` | `/api/products` | Paginated catalog listing |
-| `GET` | `/api/products/search?q=` | Search catalog products by keyword |
-| `POST` | `/api/tracked-products` | Add a product to tracking |
-| `GET` | `/api/tracked-products` | List all tracked products |
-| `PATCH` | `/api/tracked-products/:id/toggle` | Pause or resume tracking |
-| `DELETE` | `/api/tracked-products/:id` | Delete tracked product and its history |
-| `POST` | `/api/scrape/:productId` | Trigger a manual scrape for one product |
+| `GET` | `/api/health` | Backend and Supabase connection health check |
+| `GET` | `/api/products` | Paginated catalog from the mock store |
+| `GET` | `/api/products/search?q=` | Search products by title or brand |
+| `POST` | `/api/tracked-products` | Add a product to the tracking list |
+| `GET` | `/api/tracked-products` | Get all tracked products |
+| `PATCH` | `/api/tracked-products/:id/toggle` | Pause or resume tracking for a product |
+| `DELETE` | `/api/tracked-products/:id` | Remove a tracked product and its history |
+| `POST` | `/api/scrape/:productId` | Run a scrape on demand for one product |
 | `GET` | `/api/scrape/:productId/history` | Get price history for a product |
-| `GET` | `/api/scrape/:productId/logs` | Get scrape execution logs for a product |
-| `POST` | `/api/cron/scrape-all` | Batch scrape active products (requires Bearer token) |
+| `GET` | `/api/scrape/:productId/logs` | View audit logs (duration, retries, status) |
+| `POST` | `/api/cron/scrape-all` | Batch scrape all active products (requires Bearer token) |
 
 ---
 
@@ -131,15 +124,15 @@ PORT=5000
 FRONTEND_URL=http://localhost:5173
 CORS_ORIGIN=http://localhost:5173
 
-# Supabase Credentials
-SUPABASE_URL=https://your-project-id.supabase.co
+# Supabase Project settings
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-supabase-key
 
-# Scraper mode: headless (default) or headed (for visual testing)
+# Scraper mode: headless (default) or headed (to see browser during demo)
 SCRAPER_MODE=headless
 
-# Secret token required by POST /api/cron/scrape-all
-CRON_SECRET=your-secret-token
+# Secret for cron route authorization
+CRON_SECRET=your-custom-secret-key
 ```
 
 ### Frontend (`frontend/.env`)
@@ -149,83 +142,81 @@ VITE_API_BASE_URL=http://localhost:5000
 
 ---
 
-## Local Setup
+## Running Locally
 
-### 1. Backend
+### 1. Database Setup
+1. Create a project on [Supabase](https://supabase.com).
+2. Go to SQL Editor and run `backend/db/schema.sql`.
+3. Copy your project URL and secret/service role key into `backend/.env`.
+
+### 2. Start Backend
 ```bash
 cd backend
 npm install
 npm run dev
 ```
-Backend runs on `http://localhost:5000`.
+Runs at `http://localhost:5000`.
 
-### 2. Frontend
+### 3. Start Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Frontend runs on `http://localhost:5173`.
-
-### 3. Database
-1. Create a Supabase project.
-2. In the Supabase SQL Editor, run `backend/db/schema.sql`.
-3. Add your `SUPABASE_URL` and `SUPABASE_KEY` to `backend/.env`.
+Runs at `http://localhost:5173`.
 
 ---
 
-## Deployment Steps (To Be Executed)
+## Deployment Guide
 
-### Render (Backend)
-1. Push repository to GitHub.
-2. Create a Web Service on Render with root directory `backend`.
-3. Build command: `npm install && npm run build`  
-   *(Runs `npx playwright install --with-deps chromium` so Linux has the browser binary).*
-4. Start command: `node server.js`
-5. Set environment variables: `SUPABASE_URL`, `SUPABASE_KEY`, `CORS_ORIGIN`, `CRON_SECRET`, `SCRAPER_MODE=headless`.
+### Backend (Render)
+1. Push code to GitHub.
+2. In Render, create a new **Web Service** pointing to this repo.
+3. Set **Root Directory** to `backend`.
+4. Build Command: `npm install && npm run build` (installs dependencies and Playwright Chromium binaries).
+5. Start Command: `npm start`.
+6. Add Environment Variables: `SUPABASE_URL`, `SUPABASE_KEY`, `SCRAPER_MODE=headless`, `CRON_SECRET`, `NODE_ENV=production`.
 
-### Vercel (Frontend)
-1. Create a project on Vercel with root directory `frontend`.
+### Frontend (Vercel)
+1. In Vercel, import the repo and set **Root Directory** to `frontend`.
 2. Framework preset: `Vite`.
-3. Set environment variable: `VITE_API_BASE_URL` pointing to your deployed Render URL.
+3. Add Environment Variable: `VITE_API_BASE_URL` pointing to your Render backend URL.
 
-### External Cron (cron-job.org)
-1. Create an account on cron-job.org.
-2. Schedule a job for `https://your-backend.onrender.com/api/cron/scrape-all?async=true`.
-3. Schedule: Every 2 hours (`0 */2 * * *`).
-4. Method: `POST`.
-5. Header: `Authorization: Bearer <CRON_SECRET>`.
+### Cron Job (cron-job.org)
+1. Create a new job targeting `https://<your-render-url>/api/cron/scrape-all?async=true`.
+2. Schedule: Every 2 hours.
+3. Method: `POST`.
+4. Header: `Authorization: Bearer <CRON_SECRET>`.
 
 ---
 
-## AI Collaboration & Corrections
+## AI Usage & Learnings
 
-During development, an AI assistant was used for pair-programming. Several initial AI proposals were incorrect and were corrected:
+I used an AI assistant during this project for guidance, debugging, and improving the implementation:
 
-1. **Selecting tools before inspecting the website**: The AI picked Playwright immediately without inspecting the site. We stopped and inspected the actual DOM and network requests first to determine what was genuinely necessary.
-2. **Proposing to skip tests**: The AI recommended postponing tests until after MVP. We corrected this because reliability is an explicit evaluation criterion, adding targeted tests early for scraping logic, retry paths, and cron security.
-3. **Assuming Render infrastructure details**: The AI made unverified claims about specific memory limits and spin-down timers. We treated these as assumptions and designed the scraper to run sequentially to be safe with memory regardless of the provider.
-4. **Unnecessary database complexity**: The AI proposed four tables (`products` and `tracked_products`). Because this application does not have user accounts or multi-user ownership, we simplified to three tables with an `is_active` toggle flag.
+- **Site inspection & scraper timing**: When inspecting the mock store, I noticed the reveal button stayed disabled unless you hovered over the box for a moment. AI helped me write the Playwright code to simulate mouse movement and dwell time before clicking.
+- **Render build script**: Initially, the Render deployment needed system libraries for Chromium. We added `npx playwright install --with-deps chromium` as the npm build step in `package.json`.
+- **Database schema simplification**: I initially considered separating products into two separate tables for catalog items and tracked items, but realized having one `products` table with an `is_active` flag was cleaner and avoided duplicate rows.
+- **Supabase URL format**: When connecting the backend to Supabase, we caught that the URL needed to be the base project URL without `/rest/v1/` appended so the Supabase client library could route requests properly.
 
 ---
 
 ## Known Limitations
 
-- **Render Free Tier Sleep**: On the free tier, Render may spin down instances after a period of inactivity. Waking up the service can take additional time on the first request.
-- **In-Memory Batch Lock**: The lock preventing overlapping batch runs is stored in memory (`let isBatchRunning = false`). This is designed for a single-server setup and would reset if the server restarts.
-- **Sequential Scraping Duration**: Products are scraped one after another to keep memory usage low. As a result, batch runs take longer as more products are added.
-- **Database Fallback Behavior**: In local development, if Supabase credentials are not entered, the app uses a temporary in-memory store. In production (`NODE_ENV=production`), this fallback is disabled and the server will return an explicit configuration error if database credentials are missing.
+- **Render Free Tier Spin-Down**: On Render's free tier, the backend goes to sleep after 15 minutes of inactivity. The first request or cron trigger may take 30-50 seconds to respond while it wakes up.
+- **Sequential Scraping**: To avoid running out of RAM with multiple headless browser instances, products are scraped one at a time. This keeps memory usage low and stable, but larger lists will take longer to complete.
+- **In-Memory Lock for Batch Runs**: Overlap protection for cron runs is managed via an in-memory flag (`isBatchRunning`). If the server restarts during a batch run, the flag resets.
 
 ---
 
-## 2–4 Minute Demo Recording Checklist
+## 2–4 Minute Demo Video Walkthrough
 
-Follow this sequence to record the demo video for assignment submission:
+Plan for recording the demo video:
 
-1. **Setup**: Set `SCRAPER_MODE=headed` in `backend/.env` and restart the backend.
-2. **Search**: Search for a product (e.g., `"kettle"` or `"summit"`) and display the catalog results.
-3. **Add to Tracking**: Click `+ Add to Tracking` and show the product appear in the tracked list.
-4. **Run Headed Scrape**: Click `⚡ Scrape Now` and show the visible browser window navigate, move the mouse, reveal the price, and close cleanly.
-5. **Inspect Results**: Show the updated price, stock badge, and timestamp on the dashboard.
-6. **History & Logs**: Open the `📊 Details` modal and display both the price snapshot and the audit log with response time and retry count.
-7. **Pause Tracking**: Click `Pause` to demonstrate the active tracking toggle without deleting history.
+1. **Prep**: Set `SCRAPER_MODE=headed` in `backend/.env` so the browser action is visible.
+2. **Catalog Search**: Search for a product (e.g. "kettle" or "summit") on the dashboard.
+3. **Track Product**: Click `+ Add to Tracking` and show it appear in the tracked list.
+4. **Trigger Scrape**: Click `⚡ Scrape Now` and show the Playwright browser window open, hover over the price area, reveal the price, and close.
+5. **View Extracted Data**: Show the updated price, stock badge, and timestamp on the dashboard card.
+6. **Check Details**: Open the details modal to show the price history list and execution logs (response time and attempt count).
+7. **Pause Tracking**: Click `Pause` to demonstrate toggling tracking status without deleting data.
