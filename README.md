@@ -207,16 +207,4 @@ I used an AI assistant during this project for guidance, debugging, and improvin
 - **Sequential Scraping**: To avoid running out of RAM with multiple headless browser instances, products are scraped one at a time. This keeps memory usage low and stable, but larger lists will take longer to complete.
 - **In-Memory Lock for Batch Runs**: Overlap protection for cron runs is managed via an in-memory flag (`isBatchRunning`). If the server restarts during a batch run, the flag resets.
 
----
 
-## 2–4 Minute Demo Video Walkthrough
-
-Plan for recording the demo video:
-
-1. **Prep**: Set `SCRAPER_MODE=headed` in `backend/.env` so the browser action is visible.
-2. **Catalog Search**: Search for a product (e.g. "kettle" or "summit") on the dashboard.
-3. **Track Product**: Click `+ Add to Tracking` and show it appear in the tracked list.
-4. **Trigger Scrape**: Click `⚡ Scrape Now` and show the Playwright browser window open, hover over the price area, reveal the price, and close.
-5. **View Extracted Data**: Show the updated price, stock badge, and timestamp on the dashboard card.
-6. **Check Details**: Open the details modal to show the price history list and execution logs (response time and attempt count).
-7. **Pause Tracking**: Click `Pause` to demonstrate toggling tracking status without deleting data.
