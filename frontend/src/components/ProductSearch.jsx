@@ -43,7 +43,7 @@ function ProductSearch({ onProductTracked, trackedProductIds = [] }) {
         brand: product.brand,
         category: product.category
       });
-      setMessage(`Added "${product.name}" to tracking!`);
+      setMessage(`Added "${product.name}" to tracking list.`);
       if (onProductTracked) onProductTracked();
     } catch (err) {
       if (err.status === 409) {
@@ -59,20 +59,22 @@ function ProductSearch({ onProductTracked, trackedProductIds = [] }) {
   return (
     <div className="section-card">
       <div className="section-header">
-        <h2>🔍 Search INE Mock Store Products</h2>
-        <p className="section-desc">Search the 1,000 products in the store and select items to track.</p>
+        <div>
+          <h2 className="section-title">Search Store Catalog</h2>
+          <p className="section-desc">Search products from the INE mock store to add to your tracking list.</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSearch} className="search-form">
+      <form onSubmit={handleSearch} className="search-bar-container">
         <input
           type="text"
-          placeholder="Search by name, brand, or category (e.g. summit, kettle, wearables)..."
+          placeholder="Search by name, brand, or category (e.g. Cobalt, Laptops, Monitor)..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="search-input"
         />
         <button type="submit" className="btn btn-primary" disabled={loading || !query.trim()}>
-          {loading ? 'Searching...' : 'Search'}
+          {loading ? 'Searching...' : 'Search Catalog'}
         </button>
       </form>
 
@@ -85,31 +87,31 @@ function ProductSearch({ onProductTracked, trackedProductIds = [] }) {
             const isAlreadyTracked = trackedProductIds.includes(product.id);
             return (
               <div key={product.id} className="product-card">
-                <div className="product-card-top">
-                  <span className="product-category">{product.category || 'General'}</span>
-                  <span className="product-brand">{product.brand}</span>
+                <div className="product-card-header">
+                  <span className="product-category-chip">{product.category || 'General'}</span>
+                  <span className="product-brand-chip">{product.brand}</span>
                 </div>
-                <h3 className="product-title">{product.name}</h3>
-                <p className="product-sku">SKU: {product.sku}</p>
-                <div className="product-actions">
+                <h3 className="product-card-title">{product.name}</h3>
+                <p className="product-card-sku">SKU: {product.sku}</p>
+                <div className="product-card-footer">
                   <a
                     href={product.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="link-external"
+                    className="link-muted text-sm"
                   >
-                    View in Store ↗
+                    Store Link &nearr;
                   </a>
                   <button
                     onClick={() => handleTrack(product)}
                     disabled={addingId === product.id || isAlreadyTracked}
-                    className={`btn ${isAlreadyTracked ? 'btn-secondary' : 'btn-success'}`}
+                    className={`btn btn-sm ${isAlreadyTracked ? 'btn-outline' : 'btn-primary'}`}
                   >
                     {addingId === product.id
                       ? 'Adding...'
                       : isAlreadyTracked
-                      ? '✓ Tracked'
-                      : '+ Add to Tracking'}
+                      ? 'Tracked'
+                      : 'Track Product'}
                   </button>
                 </div>
               </div>

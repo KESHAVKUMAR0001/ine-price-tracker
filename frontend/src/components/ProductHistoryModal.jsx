@@ -35,109 +35,121 @@ function ProductHistoryModal({ product, onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3>{product.name}</h3>
-            <span className="modal-subtitle">Tracking History &amp; Audit Logs</span>
+            <h3 className="modal-title">{product.name}</h3>
+            <p className="modal-subtitle">Price History &amp; Scraper Audit Trail</p>
           </div>
-          <button className="btn-close" onClick={onClose}>✕</button>
+          <button className="btn-close" onClick={onClose} aria-label="Close dialog">✕</button>
         </div>
 
         <div className="modal-tabs">
           <button
-            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+            className={`tab-item ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
-            📊 Price History ({history.length})
+            Price History ({history.length})
           </button>
           <button
-            className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+            className={`tab-item ${activeTab === 'logs' ? 'active' : ''}`}
             onClick={() => setActiveTab('logs')}
           >
-            📜 Scrape Logs ({logs.length})
+            Scrape Logs ({logs.length})
           </button>
         </div>
 
         {loading && (
-          <div className="modal-loading">
+          <div className="modal-body modal-loading-state">
             <div className="spinner"></div>
-            <p>Loading product records...</p>
+            <p className="text-secondary">Loading product records...</p>
           </div>
         )}
 
         {error && <div className="alert alert-error">{error}</div>}
 
         {!loading && activeTab === 'history' && (
-          <div className="tab-content">
+          <div className="modal-body">
             <PriceChart history={history} />
 
-            <h4 className="table-heading">Price Snapshots</h4>
+            <div className="table-section-title">Recorded Price Snapshots</div>
             {history.length === 0 ? (
-              <p className="empty-text">No price records yet. Click "Scrape Now" on the dashboard to capture the first price.</p>
+              <div className="empty-state">
+                <p className="empty-title">No price snapshots recorded</p>
+                <p className="empty-desc">Click "Scrape Now" on the main dashboard to run the Playwright scraper.</p>
+              </div>
             ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Price</th>
-                    <th>Stock Status</th>
-                    <th>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((row) => (
-                    <tr key={row.id}>
-                      <td>{new Date(row.scraped_at).toLocaleString()}</td>
-                      <td className="font-bold text-green">₹{Number(row.price).toLocaleString()}</td>
-                      <td>
-                        <span className={`badge ${row.stock_status.toLowerCase().includes('out') ? 'badge-error' : 'badge-success'}`}>
-                          {row.stock_status}
-                        </span>
-                      </td>
-                      <td>{row.stock_count !== null ? row.stock_count : '—'}</td>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Price</th>
+                      <th>Stock Status</th>
+                      <th>Quantity</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {history.map((row) => (
+                      <tr key={row.id}>
+                        <td className="text-secondary">{new Date(row.scraped_at).toLocaleString()}</td>
+                        <td className="font-semibold text-primary">
+                          ₹{Number(row.price).toLocaleString()}
+                        </td>
+                        <td>
+                          <span className="pill pill-outline">
+                            {row.stock_status}
+                          </span>
+                        </td>
+                        <td className="text-secondary">{row.stock_count !== null ? row.stock_count : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
         {!loading && activeTab === 'logs' && (
-          <div className="tab-content">
-            <h4 className="table-heading">Scrape Execution Audit Trail</h4>
+          <div className="modal-body">
+            <div className="table-section-title">Execution Audit Trail</div>
             {logs.length === 0 ? (
-              <p className="empty-text">No scrape logs recorded yet.</p>
+              <div className="empty-state">
+                <p className="empty-title">No scrape logs recorded</p>
+                <p className="empty-desc">Audit logs are generated each time a manual or scheduled scrape job runs.</p>
+              </div>
             ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Status</th>
-                    <th>Duration</th>
-                    <th>Attempts</th>
-                    <th>Mode</th>
-                    <th>Notes / Errors</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.id}>
-                      <td>{new Date(log.created_at).toLocaleTimeString()}</td>
-                      <td>
-                        <span className={`badge ${log.status === 'SUCCESS' ? 'badge-success' : 'badge-error'}`}>
-                          {log.status}
-                        </span>
-                      </td>
-                      <td>{log.response_time_ms ? `${(log.response_time_ms / 1000).toFixed(1)}s` : '—'}</td>
-                      <td>{log.attempt_count}</td>
-                      <td className="text-muted">{log.mode}</td>
-                      <td className="text-error-small">{log.error_message || 'None'}</td>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Status</th>
+                      <th>Duration</th>
+                      <th>Attempts</th>
+                      <th>Mode</th>
+                      <th>Notes / Errors</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {logs.map((log) => (
+                      <tr key={log.id}>
+                        <td className="text-secondary">{new Date(log.created_at).toLocaleTimeString()}</td>
+                        <td>
+                          <span className={`pill ${log.status === 'SUCCESS' ? 'pill-active' : 'pill-outline'}`}>
+                            {log.status}
+                          </span>
+                        </td>
+                        <td className="text-secondary">{log.response_time_ms ? `${(log.response_time_ms / 1000).toFixed(1)}s` : '—'}</td>
+                        <td className="text-secondary">{log.attempt_count}</td>
+                        <td className="text-secondary">{log.mode}</td>
+                        <td className="text-secondary text-sm">{log.error_message || 'None'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}

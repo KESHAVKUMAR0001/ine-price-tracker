@@ -17,8 +17,8 @@ function TrackedList({
     try {
       const res = await api.triggerScrape(product.id);
       setActionMessage({
-        type: 'success',
-        text: `✓ Scraped "${product.name}": ₹${res.data?.price} (${res.data?.stockStatus}) in ${(res.metrics?.response_time_ms / 1000).toFixed(1)}s`
+        type: 'info',
+        text: `Scraped "${product.name}": ₹${res.data?.price} (${res.data?.stockStatus}) in ${(res.metrics?.response_time_ms / 1000).toFixed(1)}s`
       });
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -41,7 +41,7 @@ function TrackedList({
   };
 
   const handleDelete = async (product) => {
-    if (!window.confirm(`Stop tracking and delete "${product.name}"? Historical records will also be deleted.`)) {
+    if (!window.confirm(`Stop tracking and remove "${product.name}"? Historical records will also be deleted.`)) {
       return;
     }
     try {
@@ -57,11 +57,11 @@ function TrackedList({
     <div className="section-card">
       <div className="section-header">
         <div>
-          <h2>📦 Tracked Products ({products.length})</h2>
-          <p className="section-desc">Monitored every 2 hours by external cron. You can also trigger manual scrapes below.</p>
+          <h2 className="section-title">Tracked Products ({products.length})</h2>
+          <p className="section-desc">Monitored on a recurring schedule. You can trigger on-demand Playwright scrapes below.</p>
         </div>
-        <button className="btn btn-secondary" onClick={onRefresh} disabled={loading}>
-          {loading ? 'Refreshing...' : '🔄 Refresh List'}
+        <button className="btn btn-outline" onClick={onRefresh} disabled={loading}>
+          {loading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
@@ -76,26 +76,26 @@ function TrackedList({
       {loading && products.length === 0 && (
         <div className="empty-state">
           <div className="spinner"></div>
-          <p>Loading tracked products...</p>
+          <p className="text-secondary">Loading tracked products...</p>
         </div>
       )}
 
       {!loading && products.length === 0 && (
         <div className="empty-state">
-          <p className="empty-title">No products being tracked yet</p>
-          <p className="empty-desc">Use the search box below to search the INE mock store and click "+ Add to Tracking".</p>
+          <p className="empty-title">No products tracked yet</p>
+          <p className="empty-desc">Search the mock store catalog below and click "Track Product" to begin monitoring.</p>
         </div>
       )}
 
       {products.length > 0 && (
-        <div className="tracked-table-wrapper">
+        <div className="table-responsive">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Status</th>
-                <th>Last Scraped</th>
-                <th>Actions</th>
+                <th style={{ width: '38%' }}>Product</th>
+                <th style={{ width: '12%' }}>Status</th>
+                <th style={{ width: '22%' }}>Last Scraped</th>
+                <th style={{ width: '28%', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -108,32 +108,32 @@ function TrackedList({
                         <span className="product-cell-name">{product.name}</span>
                         <div className="product-cell-meta">
                           <span>{product.brand || 'Store Item'}</span>
-                          <span>•</span>
+                          <span className="meta-dot">&bull;</span>
                           <a
                             href={product.url}
                             target="_blank"
                             rel="noreferrer"
                             className="link-muted"
                           >
-                            Store Link ↗
+                            Store Link &nearr;
                           </a>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span className={`badge ${product.is_active ? 'badge-success' : 'badge-warning'}`}>
+                      <span className={`pill ${product.is_active ? 'pill-active' : 'pill-paused'}`}>
                         {product.is_active ? 'Active' : 'Paused'}
                       </span>
                     </td>
                     <td>
-                      <span className="text-muted text-small">
+                      <span className="text-secondary text-sm">
                         {product.last_scraped_at
                           ? new Date(product.last_scraped_at).toLocaleString()
                           : 'Never scraped'}
                       </span>
                     </td>
-                    <td>
-                      <div className="action-buttons">
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="action-button-group">
                         <button
                           onClick={() => handleManualScrape(product)}
                           disabled={isScrapingThis || !product.is_active}
@@ -145,7 +145,7 @@ function TrackedList({
                               <span className="btn-spinner"></span> Scraping...
                             </>
                           ) : (
-                            '⚡ Scrape Now'
+                            'Scrape Now'
                           )}
                         </button>
 
@@ -154,12 +154,12 @@ function TrackedList({
                           className="btn btn-outline btn-sm"
                           title="View price history and scrape logs"
                         >
-                          📊 Details
+                          Details
                         </button>
 
                         <button
                           onClick={() => handleToggle(product)}
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-outline btn-sm"
                           title={product.is_active ? 'Pause automatic scraping' : 'Resume automatic scraping'}
                         >
                           {product.is_active ? 'Pause' : 'Resume'}
@@ -170,7 +170,7 @@ function TrackedList({
                           className="btn btn-danger btn-sm"
                           title="Remove product and history"
                         >
-                          🗑️
+                          Remove
                         </button>
                       </div>
                     </td>

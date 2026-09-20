@@ -43,25 +43,31 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Top Navigation */}
+      {/* Top Navigation / Header */}
       <header className="site-header">
         <div className="brand-group">
-          <div className="brand-logo">📈</div>
+          <div className="brand-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>
           <div>
-            <h1 className="brand-title">INE Price Tracker</h1>
+            <h1 className="brand-title">INE Product Price Tracker</h1>
             <p className="brand-subtitle">Automated Playwright Web Scraper &amp; Price Monitor</p>
           </div>
         </div>
 
         <div className="header-status">
-          <div className="health-badge">
-            <span className={`status-dot ${healthStatus?.status === 'healthy' ? 'dot-green' : 'dot-amber'}`}></span>
-            <span>Backend: {healthStatus?.status === 'healthy' ? 'Online' : 'Connecting...'}</span>
+          <div className="status-pill">
+            <span className={`status-dot ${healthStatus?.status === 'healthy' ? 'dot-online' : 'dot-pending'}`}></span>
+            <span className="status-label">Backend: {healthStatus?.status === 'healthy' ? 'Online' : 'Connecting...'}</span>
           </div>
           {healthStatus?.database && (
-            <div className="health-badge">
-              <span className={`status-dot ${healthStatus.database.status === 'connected' ? 'dot-green' : 'dot-amber'}`}></span>
-              <span>DB: {healthStatus.database.status}</span>
+            <div className="status-pill">
+              <span className={`status-dot ${healthStatus.database.status === 'connected' ? 'dot-online' : 'dot-pending'}`}></span>
+              <span className="status-label">DB: {healthStatus.database.status}</span>
             </div>
           )}
         </div>
@@ -78,14 +84,14 @@ function App() {
           onSelectProduct={(product) => setSelectedProduct(product)}
         />
 
-        {/* Section 2: Product Search */}
+        {/* Section 2: Catalog Search */}
         <ProductSearch
           onProductTracked={loadTrackedProducts}
           trackedProductIds={trackedIds}
         />
       </main>
 
-      {/* Modal: History & Scrape Logs */}
+      {/* Modal: Price History & Audit Logs */}
       {selectedProduct && (
         <ProductHistoryModal
           product={selectedProduct}
@@ -95,7 +101,7 @@ function App() {
 
       {/* Footer */}
       <footer className="site-footer">
-        <p>INE Software Engineer Intern Assignment • Built with React, Node/Express, Playwright &amp; Supabase</p>
+        <p>INE Software Engineer Intern Assignment &bull; React, Node/Express, Playwright &amp; Supabase</p>
       </footer>
     </div>
   );

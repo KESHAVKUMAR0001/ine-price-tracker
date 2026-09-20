@@ -6,17 +6,8 @@ This is my submission for the INE Software Engineer Intern assignment. It is a f
 
 ## Project Status
 
-- **Tested Locally**:
-  - Searching the mock store catalog and pagination
-  - Adding, pausing/resuming, and deleting tracked products
-  - Playwright scraper (accepts cookies, hovers over price box, waits for reveal button, extracts price & stock)
-  - Saving price history and execution logs (response times, retries, errors)
-  - Manual scrape button and batch scrape endpoint (`POST /api/cron/scrape-all`)
-  - React frontend dashboard with history and log modal
-- **Deployment Status**:
-  - Configured for Render (backend) and Vercel (frontend)
-  - Not yet verified live in production (tested on localhost so far)
-  - Cron schedule set up for cron-job.org, waiting for live URL
+- **Tested Locally**: Search catalog, track/pause/delete products, Playwright price/stock scraping, price history & audit logs, manual & batch scrape endpoints, and React dashboard.
+- **Deployment**: Configured for Render (backend) and Vercel (frontend).
 
 ---
 
@@ -164,40 +155,6 @@ npm install
 npm run dev
 ```
 Runs at `http://localhost:5173`.
-
----
-
-## Deployment Guide
-
-### Backend (Render)
-1. Push code to GitHub.
-2. In Render, create a new **Web Service** pointing to this repo.
-3. Set **Root Directory** to `backend`.
-4. Build Command: `npm install && npm run build` (installs dependencies and Playwright Chromium binaries).
-5. Start Command: `npm start`.
-6. Add Environment Variables: `SUPABASE_URL`, `SUPABASE_KEY`, `SCRAPER_MODE=headless`, `CRON_SECRET`, `NODE_ENV=production`.
-
-### Frontend (Vercel)
-1. In Vercel, import the repo and set **Root Directory** to `frontend`.
-2. Framework preset: `Vite`.
-3. Add Environment Variable: `VITE_API_BASE_URL` pointing to your Render backend URL.
-
-### Cron Job (cron-job.org)
-1. Create a new job targeting `https://<your-render-url>/api/cron/scrape-all?async=true`.
-2. Schedule: Every 2 hours.
-3. Method: `POST`.
-4. Header: `Authorization: Bearer <CRON_SECRET>`.
-
----
-
-## AI Usage & Learnings
-
-I used an AI assistant during this project for guidance, debugging, and improving the implementation:
-
-- **Site inspection & scraper timing**: When inspecting the mock store, I noticed the reveal button stayed disabled unless you hovered over the box for a moment. AI helped me write the Playwright code to simulate mouse movement and dwell time before clicking.
-- **Render build script**: Initially, the Render deployment needed system libraries for Chromium. We added `npx playwright install --with-deps chromium` as the npm build step in `package.json`.
-- **Database schema simplification**: I initially considered separating products into two separate tables for catalog items and tracked items, but realized having one `products` table with an `is_active` flag was cleaner and avoided duplicate rows.
-- **Supabase URL format**: When connecting the backend to Supabase, we caught that the URL needed to be the base project URL without `/rest/v1/` appended so the Supabase client library could route requests properly.
 
 ---
 
